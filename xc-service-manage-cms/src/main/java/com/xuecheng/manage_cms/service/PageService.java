@@ -1,5 +1,6 @@
 package com.xuecheng.manage_cms.service;
 
+import com.xuecheng.framework.domain.cms.CmsConfig;
 import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.request.QueryPageRequest;
 import com.xuecheng.framework.domain.cms.response.CmsCode;
@@ -9,12 +10,17 @@ import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
 import com.xuecheng.framework.model.response.QueryResult;
 import com.xuecheng.framework.model.response.ResponseResult;
+import com.xuecheng.manage_cms.dao.CmsConfigRepository;
 import com.xuecheng.manage_cms.dao.CmsPageRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -27,6 +33,12 @@ public class PageService {
 
     @Autowired
     CmsPageRepository cmsPageRepository;
+
+    @Autowired
+    CmsConfigRepository cmsConfigRepository;
+
+    @Autowired
+    RestTemplate restTemplate;
 
 
     /**
@@ -111,6 +123,7 @@ public class PageService {
             page.setPageName(cmsPage.getPageName());
             page.setPageWebPath(cmsPage.getPageWebPath());
             page.setPagePhysicalPath(cmsPage.getPagePhysicalPath());
+            page.setDataUrl(cmsPage.getDataUrl());
             cmsPageRepository.save(page);
             return new CmsPageResult(CommonCode.SUCCESS,cmsPage);
         }
@@ -125,5 +138,37 @@ public class PageService {
             return new ResponseResult(CommonCode.SUCCESS);
         }
         return new ResponseResult(CommonCode.FAIL);
+    }
+
+    //根据id查询CmsConfig
+    public CmsConfig getConfigById(String id){
+        Optional<CmsConfig> optional = cmsConfigRepository.findById(id);
+        if (optional.isPresent()){
+            return optional.get();
+        }
+        return null;
+    }
+    //页面静态化的方法
+    public String getPageHtml(String pageId){
+        Map map = getModeByPageId(pageId);
+        if (map==null){
+            ExceptionCast.cast(CmsCode.CMS_GENERATEHTML_DATAISNULL);
+        }
+        return "";
+    }
+
+    //获取数据模型
+    private Map getModeByPageId(String pageId){
+        CmsPage cmsPage = this.getById(pageId);
+        if (cmsPage==null){
+            ExceptionCast.cast(CmsCode.CMS_PAGE_NOTEXISTS);
+        }
+        String dataUrl = cmsPage.getDataUrl();
+        if (StringUtils.isEmpty(dataUrl)){
+            ExceptionCast.cast(CmsCode.CMS_GENERATEHTML_DATAURLISNULL);
+        }
+        ResponseEntity<Map> forEntity = restTemplate.getForEntity(dataUrl, Map.class);
+        Map body = forEntity.getBody();
+        return body;
     }
 }
