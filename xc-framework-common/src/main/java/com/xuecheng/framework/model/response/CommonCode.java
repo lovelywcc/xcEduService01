@@ -12,6 +12,8 @@ import lombok.ToString;
 @ToString
 public enum CommonCode implements ResultCode{
 
+    null_object(false,99998,"空指针异常了"),
+    invalid_param(false,10003,"参数非法"),
     SUCCESS(true,10000,"操作成功！"),
     FAIL(false,11111,"操作失败！"),
     UNAUTHENTICATED(false,10001,"此操作需要登陆系统！"),
